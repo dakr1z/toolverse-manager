@@ -1,66 +1,57 @@
-import { GoogleGenerativeAI } from "@google/generative-ai";
+import { GoogleGenAI, Type } from "@google/genai";
 
-// Note: In a real production app, never expose API keys on the client side like this unless strictly scoped.
-// The prompt instructions specify utilizing process.env.API_KEY.
-// For Vite, use import.meta.env.VITE_GEMINI_API_KEY
-const defaultApiKey = import.meta.env.VITE_GEMINI_API_KEY || '';
+export const STORAGE_KEY_GEMINI = 'toolverse_gemini_api_key';
 
-export const generateToolDetails = async (toolName: string, userApiKey?: string) => {
-  const finalApiKey = (userApiKey || defaultApiKey).trim();
-  
-  if (!finalApiKey) {
-    console.warn("No API Key available for Gemini.");
+export const generateToolDetails = async (toolName: string) => {
+  // 1. Versuche Key aus LocalStorage zu laden (vom User in Einstellungen eingegeben)
+  // 2. Fallback auf Vite Environment Variable (falls beim Build als Secret hinterlegt)
+  const apiKey = localStorage.getItem(STORAGE_KEY_GEMINI) || (import.meta as any).env?.VITE_GEMINI_API_KEY || '';
+
+  if (!apiKey) {
+    alert("Kein Gemini API Key gefunden!\n\nBitte gehe in die Einstellungen -> AI Konfiguration und hinterlege deinen Google Gemini API Key.");
     return null;
   }
 
-  const genAI = new GoogleGenerativeAI(finalApiKey);
+  // Instanz dynamisch mit dem gefundenen Key erstellen
+  const ai = new GoogleGenAI({ apiKey });
 
   const prompt = `Analysiere das Software-Tool "${toolName}".
-  Antworte NUR mit einem validen JSON-Objekt. Keine Markdown-Formatierung (kein \`\`\`json).
-  
-  Das JSON muss diese Struktur haben:
-  {
-    "description": "Kurze Beschreibung (max 2 Sätze) auf Deutsch",
-    "category": "Kategorie (z.B. AI, Design, Dev)",
-    "websiteUrl": "Offizielle URL inkl. https://",
-    "tags": ["Tag1", "Tag2", "Tag3"],
-    "hasSubscription": true/false (Schätzung),
-    "pros": "2 Vorteile",
-    "cons": "2 Nachteile"
-  }`;
-
-  const generate = async (modelName: string) => {
-    console.log(`Generating tool details for: ${toolName} with model: ${modelName}`);
-    const model = genAI.getGenerativeModel({ 
-        model: modelName,
-        generationConfig: {
-            responseMimeType: "application/json"
-        }
-    });
-    
-    const result = await model.generateContent(prompt);
-    return result.response.text();
-  };
+  Erstelle eine kurze Beschreibung (max 2 Sätze) auf Deutsch.
+  Schlage eine passende Kategorie vor (z.B. AI, Design, Dev, Productivity).
+  Nenne die offizielle Webseite (URL) falls bekannt.
+  Nenne 3-5 relevante Tags.
+  Schätze, ob es normalerweise ein Abo-Modell hat (true/false).
+  Nenne 2 Vorteile (Pros) und 2 Nachteile (Cons).`;
 
   try {
-    // Try primary model (Flash - fast & cheap)
-    let text = await generate('gemini-1.5-flash');
+    const response = await ai.models.generateContent({
+      model: 'gemini-2.5-flash',
+      contents: prompt,
+      config: {
+        responseMimeType: "application/json",
+        responseSchema: {
+          type: Type.OBJECT,
+          properties: {
+            description: { type: Type.STRING },
+            category: { type: Type.STRING },
+            websiteUrl: { type: Type.STRING, description: "The official homepage URL including https://" },
+            tags: { type: Type.ARRAY, items: { type: Type.STRING } },
+            hasSubscription: { type: Type.BOOLEAN },
+            pros: { type: Type.STRING },
+            cons: { type: Type.STRING },
+          }
+        }
+      }
+    });
     
-    // Clean up if model adds markdown despite prompt
+    // Clean up the response text (remove markdown code blocks if present)
+    let text = response.text || '';
     text = text.replace(/```json/g, '').replace(/```/g, '').trim();
-    return JSON.parse(text);
 
-  } catch (error: any) {
-    console.warn("Primary model failed, trying fallback...", error.message);
-    
-    try {
-      // Fallback to Pro (older but stable)
-      let text = await generate('gemini-pro');
-      text = text.replace(/```json/g, '').replace(/```/g, '').trim();
-      return JSON.parse(text);
-    } catch (fallbackError: any) {
-      console.error("All models failed:", fallbackError);
-      throw new Error(fallbackError.message || "KI-Anfrage fehlgeschlagen (Modell nicht verfügbar)");
-    }
+    return text ? JSON.parse(text) : null;
+  } catch (error) {
+    console.error("Gemini API Error:", error);
+    alert("Fehler bei der AI-Anfrage. Bitte prüfe, ob dein API Key korrekt ist.\n" + error);
+    return null;
   }
 };

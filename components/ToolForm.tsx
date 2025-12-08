@@ -10,7 +10,7 @@ interface ToolFormProps {
   onCancel: () => void;
 }
 
-const ToolForm: React.FC<ToolFormProps> = ({ initialData, apiKey, onSave, onCancel }) => {
+const ToolForm: React.FC<ToolFormProps> = ({ initialData, onSave, onCancel }) => {
   const [formData, setFormData] = useState<Partial<Tool>>({
     name: '',
     category: '',
@@ -55,57 +55,42 @@ const ToolForm: React.FC<ToolFormProps> = ({ initialData, apiKey, onSave, onCanc
   };
 
   const handleAiAssist = async () => {
-    if (!apiKey) {
-      alert("⚠️ KI nicht konfiguriert!\nBitte hinterlege zuerst deinen Google Gemini API Key in den Einstellungen.");
-      return;
-    }
     if (!formData.name) {
       alert("Bitte gib zuerst einen Namen für das Tool ein.");
       return;
     }
     setLoadingAi(true);
-    try {
-      const result = await generateToolDetails(formData.name, apiKey);
-      if (result) {
-        setFormData(prev => ({
-          ...prev,
-          description: result.description || prev.description,
-          category: result.category || prev.category,
-          primaryLink: result.websiteUrl || prev.primaryLink,
-          tags: result.tags || prev.tags,
-          hasSubscription: result.hasSubscription ?? prev.hasSubscription,
-          pros: result.pros || prev.pros,
-          cons: result.cons || prev.cons,
-        }));
-      }
-    } catch (e: any) {
-      alert("Fehler bei der KI-Anfrage:\n" + e.message);
-    } finally {
-      setLoadingAi(false);
+    // Service handles errors and alerts internally now
+    const result = await generateToolDetails(formData.name);
+    setLoadingAi(false);
+
+    if (result) {
+      setFormData(prev => ({
+        ...prev,
+        description: result.description || prev.description,
+        category: result.category || prev.category,
+        primaryLink: result.websiteUrl || prev.primaryLink,
+        tags: result.tags || prev.tags,
+        hasSubscription: result.hasSubscription ?? prev.hasSubscription,
+        pros: result.pros || prev.pros,
+        cons: result.cons || prev.cons,
+      }));
     }
   };
 
   const handleGenerateDescription = async () => {
-    if (!apiKey) {
-      alert("⚠️ KI nicht konfiguriert!\nBitte hinterlege zuerst deinen Google Gemini API Key in den Einstellungen.");
-      return;
-    }
     if (!formData.name) return;
     
     setLoadingDesc(true);
-    try {
-      // Reuse the main service but only apply description
-      const result = await generateToolDetails(formData.name, apiKey);
-      if (result && result.description) {
-        setFormData(prev => ({
-          ...prev,
-          description: result.description
-        }));
-      }
-    } catch (e: any) {
-      alert("Fehler bei der Beschreibung:\n" + e.message);
-    } finally {
-      setLoadingDesc(false);
+    // Reuse the main service but only apply description
+    const result = await generateToolDetails(formData.name);
+    setLoadingDesc(false);
+
+    if (result && result.description) {
+      setFormData(prev => ({
+        ...prev,
+        description: result.description
+      }));
     }
   };
 
