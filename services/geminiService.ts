@@ -3,15 +3,17 @@ import { GoogleGenAI, Type } from "@google/genai";
 // Note: In a real production app, never expose API keys on the client side like this unless strictly scoped.
 // The prompt instructions specify utilizing process.env.API_KEY.
 // For Vite, use import.meta.env.VITE_GEMINI_API_KEY
-const apiKey = import.meta.env.VITE_GEMINI_API_KEY || '';
+const defaultApiKey = import.meta.env.VITE_GEMINI_API_KEY || '';
 
-const ai = new GoogleGenAI({ apiKey });
-
-export const generateToolDetails = async (toolName: string) => {
-  if (!apiKey) {
+export const generateToolDetails = async (toolName: string, userApiKey?: string) => {
+  const finalApiKey = userApiKey || defaultApiKey;
+  
+  if (!finalApiKey) {
     console.warn("No API Key available for Gemini.");
     return null;
   }
+
+  const ai = new GoogleGenAI({ apiKey: finalApiKey });
 
   const prompt = `Analysiere das Software-Tool "${toolName}".
   Erstelle eine kurze Beschreibung (max 2 Sätze) auf Deutsch.

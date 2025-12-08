@@ -5,11 +5,12 @@ import { generateToolDetails } from '../services/geminiService';
 
 interface ToolFormProps {
   initialData?: Tool | null;
+  apiKey?: string;
   onSave: (tool: Tool) => void;
   onCancel: () => void;
 }
 
-const ToolForm: React.FC<ToolFormProps> = ({ initialData, onSave, onCancel }) => {
+const ToolForm: React.FC<ToolFormProps> = ({ initialData, apiKey, onSave, onCancel }) => {
   const [formData, setFormData] = useState<Partial<Tool>>({
     name: '',
     category: '',
@@ -56,7 +57,7 @@ const ToolForm: React.FC<ToolFormProps> = ({ initialData, onSave, onCancel }) =>
   const handleAiAssist = async () => {
     if (!formData.name) return;
     setLoadingAi(true);
-    const result = await generateToolDetails(formData.name);
+    const result = await generateToolDetails(formData.name, apiKey);
     setLoadingAi(false);
 
     if (result) {
@@ -77,7 +78,7 @@ const ToolForm: React.FC<ToolFormProps> = ({ initialData, onSave, onCancel }) =>
     if (!formData.name) return;
     setLoadingDesc(true);
     // Reuse the main service but only apply description
-    const result = await generateToolDetails(formData.name);
+    const result = await generateToolDetails(formData.name, apiKey);
     setLoadingDesc(false);
 
     if (result && result.description) {

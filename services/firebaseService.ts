@@ -1,6 +1,6 @@
 import { initializeApp, FirebaseApp } from 'firebase/app';
 import { getAuth, GoogleAuthProvider, signInWithPopup, signOut, Auth, User } from 'firebase/auth';
-import { getFirestore, doc, setDoc, getDoc, Firestore } from 'firebase/firestore';
+import { getFirestore, doc, setDoc, getDoc, onSnapshot, Firestore } from 'firebase/firestore';
 import { FirebaseConfig, Tool, Workflow } from '../types';
 
 let app: FirebaseApp | null = null;
@@ -60,6 +60,21 @@ export const loadUserDataFromCloud = async (userId: string) => {
     return snap.data() as { tools: Tool[], workflows: Workflow[] };
   }
   return null;
+};
+
+export const subscribeToUserData = (
+  userId: string, 
+  onData: (data: { tools: Tool[], workflows: Workflow[] }) => void
+) => {
+  if (!db) throw new Error("Database not initialized");
+  
+  // Return the unsubscribe function
+  return onSnapshot(doc(db, "users", userId), (doc) => {
+    if (doc.exists()) {
+      const data = doc.data() as { tools: Tool[], workflows: Workflow[] };
+      onData(data);
+    }
+  });
 };
 
 export const testFirestoreConnection = async () => {

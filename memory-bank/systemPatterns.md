@@ -25,20 +25,24 @@ flowchart TD
 
 ## Key Technical Decisions
 
-### 1. Offline-First Data Strategy
-- **Decision**: Primary data source is `LocalStorage`.
-- **Reason**: Ensures the app works instantly and without internet. Privacy by default.
-- **Pattern**: `storageService.ts` abstracts `localStorage` calls. `App.tsx` loads data on mount and saves on change.
+### 1. Cloud-First Data Strategy (Updated)
+- **Decision**: Primary data source is `Firestore` (Realtime).
+- **Reason**: Ensures synchronization across all devices. LocalStorage is now used as a cache/backup.
+- **Pattern**: `App.tsx` uses `subscribeToUserData` to listen for cloud changes and updates React state instantly.
+
+### 2. Auth Wall
+- **Decision**: App content is hidden until user logs in.
+- **Reason**: Protects data on public URLs (GitHub Pages) and ensures user sees *their* data, not empty local state.
 
 ### 2. Centralized State (App.tsx)
 - **Decision**: Managing global state (`tools`, `workflows`, `user`, `settings`) in the root `App` component.
 - **Reason**: Simplifies prop drilling for a medium-sized app.
 - **Trade-off**: `App.tsx` is large and handles many concerns (routing, auth, sync). This is a known refactoring candidate.
 
-### 3. Manual Cloud Sync
-- **Decision**: Cloud sync is triggered manually (Upload/Download) rather than real-time.
-- **Reason**: Simplifies conflict resolution and gives user explicit control over when data leaves the device.
-- **Implementation**: Full state object is serialized and pushed to a Firestore document keyed by User ID.
+### 3. Realtime Cloud Sync
+- **Decision**: Changes are pushed immediately to Firestore; updates are received via streams.
+- **Reason**: User requirement for seamless multi-device experience.
+- **Implementation**: `saveUserDataToCloud` is called on every write action. `onSnapshot` handles read updates.
 
 ### 4. Security Layer
 - **Decision**: Application-level PIN lock.
