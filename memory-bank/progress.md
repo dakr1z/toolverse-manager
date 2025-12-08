@@ -10,11 +10,11 @@ The core functionality (Tools, Workflows, Subscriptions, Local Data) is implemen
 - **Workflow Builder**: Creating workflows with cost estimation.
 - **Security**: PIN Lock screen.
 - **Data Persistence**: LocalStorage works reliably.
-- **Cloud Sync**: Manual Firebase upload/download.
+- **Cloud Sync**: Manual Firebase upload/download + Connection Test.
+- **AI**: Gemini integration (updated to `gemini-1.5-flash`).
 
 ## What's Left to Build / Improve
 - **Refactoring**: Split `App.tsx` into cleaner Context providers or custom hooks.
-- **AI Integration**: Fully utilize the `geminiService.ts` for predictive features (e.g., suggesting tools, optimizing costs).
 - **Mobile UX**: Ensure the "Mobile Menu" and responsive layouts are fully optimized.
 - **Error Handling**: Improve feedback for Firebase errors (currently basic alerts).
 
