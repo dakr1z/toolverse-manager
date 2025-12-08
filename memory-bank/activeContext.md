@@ -13,7 +13,6 @@ The project is currently in the "Analysis & Documentation" phase. I have just es
 - **Documentation First**: Before making code changes, a solid understanding of the current architecture (especially the monolithic `App.tsx` and data flow) was required.
 
 ## Next Steps
-- Push changes to GitHub for deployment.
-- Verify Realtime Sync in production.
+- **Support**: Resolve Firestore Permission Denied error. User needs to update Security Rules in Firebase Console.
 - Potential areas for improvement identified:
   - **Refactoring `App.tsx`**: Breaking down the giant component into smaller contexts or hooks.

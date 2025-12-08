@@ -55,7 +55,14 @@ const ToolForm: React.FC<ToolFormProps> = ({ initialData, apiKey, onSave, onCanc
   };
 
   const handleAiAssist = async () => {
-    if (!formData.name) return;
+    if (!apiKey) {
+      alert("⚠️ KI nicht konfiguriert!\nBitte hinterlege zuerst deinen Google Gemini API Key in den Einstellungen.");
+      return;
+    }
+    if (!formData.name) {
+      alert("Bitte gib zuerst einen Namen für das Tool ein.");
+      return;
+    }
     setLoadingAi(true);
     const result = await generateToolDetails(formData.name, apiKey);
     setLoadingAi(false);
@@ -75,6 +82,10 @@ const ToolForm: React.FC<ToolFormProps> = ({ initialData, apiKey, onSave, onCanc
   };
 
   const handleGenerateDescription = async () => {
+    if (!apiKey) {
+      alert("⚠️ KI nicht konfiguriert!\nBitte hinterlege zuerst deinen Google Gemini API Key in den Einstellungen.");
+      return;
+    }
     if (!formData.name) return;
     setLoadingDesc(true);
     // Reuse the main service but only apply description
