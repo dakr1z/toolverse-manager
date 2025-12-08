@@ -6,7 +6,7 @@ import { GoogleGenerativeAI } from "@google/generative-ai";
 const defaultApiKey = import.meta.env.VITE_GEMINI_API_KEY || '';
 
 export const generateToolDetails = async (toolName: string, userApiKey?: string) => {
-  const finalApiKey = userApiKey || defaultApiKey;
+  const finalApiKey = (userApiKey || defaultApiKey).trim();
   
   if (!finalApiKey) {
     console.warn("No API Key available for Gemini.");

@@ -286,7 +286,9 @@ const App: React.FC = () => {
   };
 
   const handleSaveApiKey = () => {
-    localStorage.setItem(API_KEY_STORAGE_KEY, geminiApiKey);
+    const cleanedKey = geminiApiKey.trim();
+    setGeminiApiKey(cleanedKey);
+    localStorage.setItem(API_KEY_STORAGE_KEY, cleanedKey);
     alert('API Key gespeichert!');
   };
 
