@@ -23,10 +23,10 @@ export const generateToolDetails = async (toolName: string, userApiKey?: string)
   Schätze, ob es normalerweise ein Abo-Modell hat (true/false).
   Nenne 2 Vorteile (Pros) und 2 Nachteile (Cons).`;
 
-  try {
-    console.log("Generating tool details for:", toolName);
-    const response = await ai.models.generateContent({
-      model: 'gemini-1.5-flash',
+  const generate = async (modelName: string) => {
+    console.log(`Generating tool details for: ${toolName} with model: ${modelName}`);
+    return await ai.models.generateContent({
+      model: modelName,
       contents: prompt,
       config: {
         responseMimeType: "application/json",
@@ -44,14 +44,26 @@ export const generateToolDetails = async (toolName: string, userApiKey?: string)
         }
       }
     });
-    
-    // Clean up the response text (remove markdown code blocks if present)
+  };
+
+  try {
+    // Try primary model (Flash - fast & cheap)
+    const response = await generate('gemini-1.5-flash');
     let text = response.text || '';
     text = text.replace(/```json/g, '').replace(/```/g, '').trim();
-
     return text ? JSON.parse(text) : null;
   } catch (error: any) {
-    console.error("Gemini API Error:", error);
-    throw new Error(error.message || "Unbekannter Fehler bei der KI-Anfrage");
+    console.warn("Primary model failed, trying fallback...", error.message);
+    
+    try {
+      // Fallback to Pro (older but stable)
+      const response = await generate('gemini-pro');
+      let text = response.text || '';
+      text = text.replace(/```json/g, '').replace(/```/g, '').trim();
+      return text ? JSON.parse(text) : null;
+    } catch (fallbackError: any) {
+      console.error("All models failed:", fallbackError);
+      throw new Error(fallbackError.message || "KI-Anfrage fehlgeschlagen (Modell nicht verfügbar)");
+    }
   }
 };
