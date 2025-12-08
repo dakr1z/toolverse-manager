@@ -1,4 +1,4 @@
-import { GoogleGenAI, Type } from "@google/genai";
+import { GoogleGenerativeAI } from "@google/generative-ai";
 
 // Note: In a real production app, never expose API keys on the client side like this unless strictly scoped.
 // The prompt instructions specify utilizing process.env.API_KEY.
@@ -13,54 +13,51 @@ export const generateToolDetails = async (toolName: string, userApiKey?: string)
     return null;
   }
 
-  const ai = new GoogleGenAI({ apiKey: finalApiKey });
+  const genAI = new GoogleGenerativeAI(finalApiKey);
 
   const prompt = `Analysiere das Software-Tool "${toolName}".
-  Erstelle eine kurze Beschreibung (max 2 Sätze) auf Deutsch.
-  Schlage eine passende Kategorie vor (z.B. AI, Design, Dev, Productivity).
-  Nenne die offizielle Webseite (URL) falls bekannt.
-  Nenne 3-5 relevante Tags.
-  Schätze, ob es normalerweise ein Abo-Modell hat (true/false).
-  Nenne 2 Vorteile (Pros) und 2 Nachteile (Cons).`;
+  Antworte NUR mit einem validen JSON-Objekt. Keine Markdown-Formatierung (kein \`\`\`json).
+  
+  Das JSON muss diese Struktur haben:
+  {
+    "description": "Kurze Beschreibung (max 2 Sätze) auf Deutsch",
+    "category": "Kategorie (z.B. AI, Design, Dev)",
+    "websiteUrl": "Offizielle URL inkl. https://",
+    "tags": ["Tag1", "Tag2", "Tag3"],
+    "hasSubscription": true/false (Schätzung),
+    "pros": "2 Vorteile",
+    "cons": "2 Nachteile"
+  }`;
 
   const generate = async (modelName: string) => {
     console.log(`Generating tool details for: ${toolName} with model: ${modelName}`);
-    return await ai.models.generateContent({
-      model: modelName,
-      contents: prompt,
-      config: {
-        responseMimeType: "application/json",
-        responseSchema: {
-          type: Type.OBJECT,
-          properties: {
-            description: { type: Type.STRING },
-            category: { type: Type.STRING },
-            websiteUrl: { type: Type.STRING, description: "The official homepage URL including https://" },
-            tags: { type: Type.ARRAY, items: { type: Type.STRING } },
-            hasSubscription: { type: Type.BOOLEAN },
-            pros: { type: Type.STRING },
-            cons: { type: Type.STRING },
-          }
+    const model = genAI.getGenerativeModel({ 
+        model: modelName,
+        generationConfig: {
+            responseMimeType: "application/json"
         }
-      }
     });
+    
+    const result = await model.generateContent(prompt);
+    return result.response.text();
   };
 
   try {
     // Try primary model (Flash - fast & cheap)
-    const response = await generate('gemini-1.5-flash');
-    let text = response.text || '';
+    let text = await generate('gemini-1.5-flash');
+    
+    // Clean up if model adds markdown despite prompt
     text = text.replace(/```json/g, '').replace(/```/g, '').trim();
-    return text ? JSON.parse(text) : null;
+    return JSON.parse(text);
+
   } catch (error: any) {
     console.warn("Primary model failed, trying fallback...", error.message);
     
     try {
       // Fallback to Pro (older but stable)
-      const response = await generate('gemini-pro');
-      let text = response.text || '';
+      let text = await generate('gemini-pro');
       text = text.replace(/```json/g, '').replace(/```/g, '').trim();
-      return text ? JSON.parse(text) : null;
+      return JSON.parse(text);
     } catch (fallbackError: any) {
       console.error("All models failed:", fallbackError);
       throw new Error(fallbackError.message || "KI-Anfrage fehlgeschlagen (Modell nicht verfügbar)");
