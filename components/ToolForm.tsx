@@ -64,20 +64,24 @@ const ToolForm: React.FC<ToolFormProps> = ({ initialData, apiKey, onSave, onCanc
       return;
     }
     setLoadingAi(true);
-    const result = await generateToolDetails(formData.name, apiKey);
-    setLoadingAi(false);
-
-    if (result) {
-      setFormData(prev => ({
-        ...prev,
-        description: result.description || prev.description,
-        category: result.category || prev.category,
-        primaryLink: result.websiteUrl || prev.primaryLink,
-        tags: result.tags || prev.tags,
-        hasSubscription: result.hasSubscription ?? prev.hasSubscription,
-        pros: result.pros || prev.pros,
-        cons: result.cons || prev.cons,
-      }));
+    try {
+      const result = await generateToolDetails(formData.name, apiKey);
+      if (result) {
+        setFormData(prev => ({
+          ...prev,
+          description: result.description || prev.description,
+          category: result.category || prev.category,
+          primaryLink: result.websiteUrl || prev.primaryLink,
+          tags: result.tags || prev.tags,
+          hasSubscription: result.hasSubscription ?? prev.hasSubscription,
+          pros: result.pros || prev.pros,
+          cons: result.cons || prev.cons,
+        }));
+      }
+    } catch (e: any) {
+      alert("Fehler bei der KI-Anfrage:\n" + e.message);
+    } finally {
+      setLoadingAi(false);
     }
   };
 
@@ -87,16 +91,21 @@ const ToolForm: React.FC<ToolFormProps> = ({ initialData, apiKey, onSave, onCanc
       return;
     }
     if (!formData.name) return;
+    
     setLoadingDesc(true);
-    // Reuse the main service but only apply description
-    const result = await generateToolDetails(formData.name, apiKey);
-    setLoadingDesc(false);
-
-    if (result && result.description) {
-      setFormData(prev => ({
-        ...prev,
-        description: result.description
-      }));
+    try {
+      // Reuse the main service but only apply description
+      const result = await generateToolDetails(formData.name, apiKey);
+      if (result && result.description) {
+        setFormData(prev => ({
+          ...prev,
+          description: result.description
+        }));
+      }
+    } catch (e: any) {
+      alert("Fehler bei der Beschreibung:\n" + e.message);
+    } finally {
+      setLoadingDesc(false);
     }
   };
 

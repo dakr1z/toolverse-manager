@@ -50,8 +50,8 @@ export const generateToolDetails = async (toolName: string, userApiKey?: string)
     text = text.replace(/```json/g, '').replace(/```/g, '').trim();
 
     return text ? JSON.parse(text) : null;
-  } catch (error) {
+  } catch (error: any) {
     console.error("Gemini API Error:", error);
-    return null;
+    throw new Error(error.message || "Unbekannter Fehler bei der KI-Anfrage");
   }
 };
