@@ -274,6 +274,11 @@ const App: React.FC = () => {
     }
   };
 
+  const handleEditTool = (tool: Tool) => {
+    setEditingTool(tool);
+    setShowForm(true);
+  };
+
   const handleSaveWorkflows = (newWorkflows: Workflow[]) => {
     setWorkflows(newWorkflows);
     saveWorkflows(newWorkflows);
