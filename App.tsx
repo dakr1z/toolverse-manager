@@ -2,11 +2,12 @@ import React, { useState, useEffect } from 'react';
 import Sidebar from './components/Sidebar';
 import Dashboard from './pages/Dashboard';
 import ToolLibrary from './pages/ToolLibrary';
+import PromptLibrary from './pages/PromptLibrary';
 import SubscriptionManager from './pages/SubscriptionManager';
 import WorkflowBuilder from './pages/WorkflowBuilder';
 import ToolForm from './components/ToolForm';
-import { Tool, Workflow, FirebaseConfig } from './types';
-import { getTools, saveTools, importData, getWorkflows, saveWorkflows } from './services/storageService';
+import { Tool, Workflow, FirebaseConfig, Prompt, PromptCategory } from './types';
+import { getTools, saveTools, importData, getWorkflows, saveWorkflows, getPrompts, savePrompts, getPromptCategories, savePromptCategories } from './services/storageService';
 import { initFirebase, loginWithGoogle, logoutFirebase, getCurrentUser, saveUserDataToCloud, subscribeToUserData, isFirebaseInitialized, testFirestoreConnection } from './services/firebaseService';
 import { Moon, Sun, Menu, User, Download, Upload, Image as ImageIcon, Lock, Unlock, ShieldCheck, LogOut, Cloud, RefreshCw, CheckCircle, AlertTriangle, HelpCircle, Copy, Clipboard, Link, Activity, Key, Loader2 } from 'lucide-react';
 
@@ -28,6 +29,8 @@ const App: React.FC = () => {
   const [activeTab, setActiveTab] = useState('dashboard');
   const [tools, setTools] = useState<Tool[]>([]);
   const [workflows, setWorkflows] = useState<Workflow[]>([]);
+  const [prompts, setPrompts] = useState<Prompt[]>([]);
+  const [promptCategories, setPromptCategories] = useState<PromptCategory[]>([]);
   const [isDarkMode, setIsDarkMode] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [editingTool, setEditingTool] = useState<Tool | null>(null);
@@ -66,10 +69,14 @@ const App: React.FC = () => {
             console.log("Received realtime update");
             if (data.tools) setTools(data.tools);
             if (data.workflows) setWorkflows(data.workflows);
+            if (data.prompts) setPrompts(data.prompts);
+            if (data.promptCategories) setPromptCategories(data.promptCategories);
             
             // Cache locally as well
             if (data.tools) saveTools(data.tools);
             if (data.workflows) saveWorkflows(data.workflows);
+            if (data.prompts) savePrompts(data.prompts);
+            if (data.promptCategories) savePromptCategories(data.promptCategories);
             
             setLastSyncTime(new Date().toLocaleTimeString());
          });
@@ -90,6 +97,8 @@ const App: React.FC = () => {
     // Load Local Data (Cache)
     setTools(getTools());
     setWorkflows(getWorkflows());
+    setPrompts(getPrompts());
+    setPromptCategories(getPromptCategories());
     
     // Load API Key
     const savedKey = localStorage.getItem(API_KEY_STORAGE_KEY);
@@ -143,11 +152,16 @@ const App: React.FC = () => {
 
   // --- Handlers ---
 
-  const saveToCloudIfPossible = async (newTools: Tool[], newWorkflows: Workflow[]) => {
+  const saveToCloudIfPossible = async (newTools: Tool[], newWorkflows: Workflow[], newPrompts: Prompt[], newPromptCats: PromptCategory[]) => {
     if (cloudUser) {
       setSyncStatus('uploading');
       try {
-        await saveUserDataToCloud(cloudUser.uid, { tools: newTools, workflows: newWorkflows });
+        await saveUserDataToCloud(cloudUser.uid, { 
+          tools: newTools, 
+          workflows: newWorkflows,
+          prompts: newPrompts,
+          promptCategories: newPromptCats
+        });
         setSyncStatus('success');
         setTimeout(() => setSyncStatus(null), 2000);
       } catch (e) {
@@ -229,13 +243,10 @@ const App: React.FC = () => {
       const user = await loginWithGoogle();
       setCloudUser(user);
       
-      // Initial Sync: Push local data to cloud if cloud is empty? 
-      // Or pull? For now, we rely on subscription to pull. 
-      // BUT if it's the first time, user might want to push local data.
-      // Let's prompt user or auto-push if tools > 0.
-      if (tools.length > 0) {
+      // Initial Sync
+      if (tools.length > 0 || prompts.length > 0) {
          if(confirm("Sollen deine lokalen Daten in die Cloud hochgeladen werden?")) {
-            await saveUserDataToCloud(user.uid, { tools, workflows });
+            await saveUserDataToCloud(user.uid, { tools, workflows, prompts, promptCategories });
          }
       }
       
@@ -258,7 +269,7 @@ const App: React.FC = () => {
     }
     setTools(newTools);
     saveTools(newTools);
-    saveToCloudIfPossible(newTools, workflows);
+    saveToCloudIfPossible(newTools, workflows, prompts, promptCategories);
     setShowForm(false);
     setEditingTool(null);
   };
@@ -268,7 +279,7 @@ const App: React.FC = () => {
       const newTools = tools.filter(t => t.id !== id);
       setTools(newTools);
       saveTools(newTools);
-      saveToCloudIfPossible(newTools, workflows);
+      saveToCloudIfPossible(newTools, workflows, prompts, promptCategories);
       setShowForm(false);
       setEditingTool(null);
     }
@@ -282,7 +293,30 @@ const App: React.FC = () => {
   const handleSaveWorkflows = (newWorkflows: Workflow[]) => {
     setWorkflows(newWorkflows);
     saveWorkflows(newWorkflows);
-    saveToCloudIfPossible(tools, newWorkflows);
+    saveToCloudIfPossible(tools, newWorkflows, prompts, promptCategories);
+  };
+
+  const handleAddPrompt = (prompt: Prompt) => {
+    const newPrompts = [...prompts, prompt];
+    setPrompts(newPrompts);
+    savePrompts(newPrompts);
+    saveToCloudIfPossible(tools, workflows, newPrompts, promptCategories);
+  };
+
+  const handleUpdatePrompt = (prompt: Prompt) => {
+    const newPrompts = prompts.map(p => p.id === prompt.id ? prompt : p);
+    setPrompts(newPrompts);
+    savePrompts(newPrompts);
+    saveToCloudIfPossible(tools, workflows, newPrompts, promptCategories);
+  };
+
+  const handleDeletePrompt = (id: string) => {
+    if (confirm('Möchtest du diesen Prompt wirklich löschen?')) {
+      const newPrompts = prompts.filter(p => p.id !== id);
+      setPrompts(newPrompts);
+      savePrompts(newPrompts);
+      saveToCloudIfPossible(tools, workflows, newPrompts, promptCategories);
+    }
   };
 
   const handleSaveApiKey = () => {
@@ -302,8 +336,10 @@ const App: React.FC = () => {
         if (imported) {
           setTools(imported.tools);
           setWorkflows(imported.workflows);
-          saveToCloudIfPossible(imported.tools, imported.workflows);
-          alert(`${imported.tools.length} Tools und ${imported.workflows.length} Workflows erfolgreich importiert!`);
+          setPrompts(imported.prompts);
+          setPromptCategories(imported.promptCategories);
+          saveToCloudIfPossible(imported.tools, imported.workflows, imported.prompts, imported.promptCategories);
+          alert(`${imported.tools.length} Tools, ${imported.workflows.length} Workflows und ${imported.prompts.length} Prompts erfolgreich importiert!`);
         } else {
           alert('Fehler beim Importieren der Datei.');
         }
@@ -334,7 +370,7 @@ const App: React.FC = () => {
     );
   }
 
-  // --- RENDER: LOGIN WALL (if not logged in) ---
+  // --- RENDER: LOGIN WALL ---
   if (!cloudUser) {
      return (
         <div className="flex h-screen bg-gray-50 dark:bg-gray-900 items-center justify-center p-4">
@@ -375,11 +411,11 @@ const App: React.FC = () => {
      );
   }
 
-  // --- RENDER: LOCK SCREEN (if logged in but locked) ---
+  // --- RENDER: LOCK SCREEN ---
   if (isLocked) {
     return (
       <div className="flex h-screen items-center justify-center bg-gray-100 dark:bg-gray-900 px-4">
-        <div className="bg-white dark:bg-card p-8 rounded-2xl shadow-2xl max-w-sm w-full text-center border border-gray-200 dark:border-gray-700 animate-fade-in">
+        <div className="bg-white dark:bg-card p-8 rounded-2xl shadow-2xl max-sm w-full text-center border border-gray-200 dark:border-gray-700 animate-fade-in">
           <div className="mx-auto w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center mb-6 text-primary">
             <Lock size={32} />
           </div>
@@ -424,6 +460,7 @@ const App: React.FC = () => {
             </button>
             <h2 className="text-lg font-semibold capitalize hidden sm:block">
               {activeTab === 'library' ? 'Tool Datenbank' : 
+               activeTab === 'prompts' ? 'Prompt Library' :
                activeTab === 'settings' ? 'Einstellungen' : 'Übersicht'}
             </h2>
           </div>
@@ -445,6 +482,17 @@ const App: React.FC = () => {
           
           {activeTab === 'library' && (
             <ToolLibrary tools={tools} onSelectTool={handleEditTool} />
+          )}
+
+          {activeTab === 'prompts' && (
+            <PromptLibrary 
+              prompts={prompts} 
+              categories={promptCategories} 
+              tools={tools}
+              onAddPrompt={handleAddPrompt}
+              onUpdatePrompt={handleUpdatePrompt}
+              onDeletePrompt={handleDeletePrompt}
+            />
           )}
 
           {activeTab === 'workflows' && (

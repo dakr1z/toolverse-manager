@@ -1,11 +1,21 @@
-import { Tool, Workflow, WorkflowStep, WorkflowToolConfig } from '../types';
+import { Tool, Workflow, WorkflowStep, WorkflowToolConfig, Prompt, PromptCategory } from '../types';
 
 const STORAGE_KEY_TOOLS = 'toolverse_data_v1';
 const STORAGE_KEY_WORKFLOWS = 'toolverse_workflows_v1';
+const STORAGE_KEY_PROMPTS = 'toolverse_prompts_v1';
+const STORAGE_KEY_PROMPT_CATEGORIES = 'toolverse_prompt_categories_v1';
 
 // Empty initial state
 const INITIAL_TOOLS: Tool[] = [];
 const INITIAL_WORKFLOWS: Workflow[] = [];
+
+export const INITIAL_PROMPT_CATEGORIES: PromptCategory[] = [
+  { id: 'coding', name: 'Coding', icon: '💻' },
+  { id: 'marketing', name: 'Marketing', icon: '📈' },
+  { id: 'creative', name: 'Creative', icon: '🎨' },
+  { id: 'business', name: 'Business', icon: '💼' },
+  { id: 'image-gen', name: 'Image Gen', icon: '🖼️' },
+];
 
 export const getTools = (): Tool[] => {
   const data = localStorage.getItem(STORAGE_KEY_TOOLS);
@@ -62,24 +72,55 @@ export const saveWorkflows = (workflows: Workflow[]) => {
   localStorage.setItem(STORAGE_KEY_WORKFLOWS, JSON.stringify(workflows));
 };
 
+export const getPrompts = (): Prompt[] => {
+  const data = localStorage.getItem(STORAGE_KEY_PROMPTS);
+  return data ? JSON.parse(data) : [];
+};
+
+export const savePrompts = (prompts: Prompt[]) => {
+  localStorage.setItem(STORAGE_KEY_PROMPTS, JSON.stringify(prompts));
+};
+
+export const getPromptCategories = (): PromptCategory[] => {
+  const data = localStorage.getItem(STORAGE_KEY_PROMPT_CATEGORIES);
+  return data ? JSON.parse(data) : INITIAL_PROMPT_CATEGORIES;
+};
+
+export const savePromptCategories = (categories: PromptCategory[]) => {
+  localStorage.setItem(STORAGE_KEY_PROMPT_CATEGORIES, JSON.stringify(categories));
+};
+
 export const exportData = (): string => {
   const tools = getTools();
   const workflows = getWorkflows();
-  return JSON.stringify({ tools, workflows }, null, 2);
+  const prompts = getPrompts();
+  const promptCategories = getPromptCategories();
+  return JSON.stringify({ tools, workflows, prompts, promptCategories }, null, 2);
 };
 
-export const importData = (jsonString: string): { tools: Tool[], workflows: Workflow[] } | null => {
+export const importData = (jsonString: string): { tools: Tool[], workflows: Workflow[], prompts: Prompt[], promptCategories: PromptCategory[] } | null => {
   try {
     const data = JSON.parse(jsonString);
     if (Array.isArray(data)) {
       saveTools(data);
-      return { tools: data, workflows: [] };
+      return { tools: data, workflows: [], prompts: [], promptCategories: [] };
     } else if (data.tools) {
       saveTools(data.tools);
       if (data.workflows) {
         saveWorkflows(data.workflows);
       }
-      return { tools: data.tools, workflows: data.workflows || [] };
+      if (data.prompts) {
+        savePrompts(data.prompts);
+      }
+      if (data.promptCategories) {
+        savePromptCategories(data.promptCategories);
+      }
+      return { 
+        tools: data.tools, 
+        workflows: data.workflows || [], 
+        prompts: data.prompts || [], 
+        promptCategories: data.promptCategories || [] 
+      };
     }
   } catch (e) {
     console.error('Import fehlgeschlagen', e);

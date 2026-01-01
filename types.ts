@@ -84,3 +84,24 @@ export interface FirebaseConfig {
   messagingSenderId: string;
   appId: string;
 }
+
+// Prompt Library Types
+export type PromptType = 'text' | 'image' | 'video';
+
+export interface Prompt {
+  id: string;
+  title: string;
+  description: string;
+  content: string;
+  type: PromptType;
+  categoryId: string;
+  toolId?: string; // Optional link to a tool in Tool Library
+  exampleImageUrl?: string;
+  tags: string[];
+}
+
+export interface PromptCategory {
+  id: string;
+  name: string;
+  icon: string;
+}

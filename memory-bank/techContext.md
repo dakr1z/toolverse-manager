@@ -14,8 +14,9 @@
   - Firestore (Cloud Data Storage)
   - *Note*: Config is dynamic, user can provide their own keys.
 - **Google Gemini**:
-  - `@google/generative-ai` SDK (Client-side compatible).
-  - Uses dynamic API Key from user settings (stored in LocalStorage).
+  - ` @google/genai` SDK (v1.1.0+).
+  - Uses `gemini-2.5-flash` model via Beta API.
+  - Uses dynamic API Key from user settings.
 
 ## Development Environment
 - **Node.js**: Required for local dev.

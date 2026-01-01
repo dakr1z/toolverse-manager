@@ -1,7 +1,7 @@
 import { initializeApp, FirebaseApp } from 'firebase/app';
 import { getAuth, GoogleAuthProvider, signInWithPopup, signOut, Auth, User } from 'firebase/auth';
 import { getFirestore, doc, setDoc, getDoc, onSnapshot, Firestore } from 'firebase/firestore';
-import { FirebaseConfig, Tool, Workflow } from '../types';
+import { FirebaseConfig, Tool, Workflow, Prompt, PromptCategory } from '../types';
 
 let app: FirebaseApp | null = null;
 let auth: Auth | null = null;
@@ -45,7 +45,14 @@ export const getCurrentUser = (): User | null => {
   return auth?.currentUser || null;
 };
 
-export const saveUserDataToCloud = async (userId: string, data: { tools: Tool[], workflows: Workflow[] }) => {
+interface UserData {
+  tools: Tool[];
+  workflows: Workflow[];
+  prompts?: Prompt[];
+  promptCategories?: PromptCategory[];
+}
+
+export const saveUserDataToCloud = async (userId: string, data: UserData) => {
   if (!db) throw new Error("Database not initialized");
   await setDoc(doc(db, "users", userId), {
     ...data,
@@ -57,21 +64,21 @@ export const loadUserDataFromCloud = async (userId: string) => {
   if (!db) throw new Error("Database not initialized");
   const snap = await getDoc(doc(db, "users", userId));
   if (snap.exists()) {
-    return snap.data() as { tools: Tool[], workflows: Workflow[] };
+    return snap.data() as UserData;
   }
   return null;
 };
 
 export const subscribeToUserData = (
   userId: string, 
-  onData: (data: { tools: Tool[], workflows: Workflow[] }) => void
+  onData: (data: UserData) => void
 ) => {
   if (!db) throw new Error("Database not initialized");
   
   // Return the unsubscribe function
   return onSnapshot(doc(db, "users", userId), (doc) => {
     if (doc.exists()) {
-      const data = doc.data() as { tools: Tool[], workflows: Workflow[] };
+      const data = doc.data() as UserData;
       onData(data);
     }
   });

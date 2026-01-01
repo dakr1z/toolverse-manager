@@ -14,6 +14,7 @@ const Sidebar: React.FC<SidebarProps> = ({ activeTab, setActiveTab, isMobileOpen
     { id: 'workflows', label: 'Projekte & Workflows', icon: Workflow },
     { id: 'library', label: 'Tool-Datenbank', icon: Database },
     { id: 'subscriptions', label: 'Abos & Kosten', icon: CreditCard },
+    { id: 'prompts', label: 'Prompt Library', icon: Sparkles },
     { id: 'gallery', label: 'Referenzen', icon: ImageIcon },
     { id: 'settings', label: 'Einstellungen', icon: Settings },
   ];
